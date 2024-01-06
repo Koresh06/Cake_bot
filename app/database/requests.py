@@ -75,6 +75,13 @@ async def add_cart_product(tg_id, id_categ):
         else: 
             return False
 
+async def content_product(id_pr):
+    async with async_session() as session:
+        fast_food = await session.execute(select(Product.name, Product.image, Product.description, Product.price, Product.id).where(Product.id == id_pr))
+        if fast_food:
+            return fast_food.all()
+        return False 
+
 async def count_quantuty(categ_id):
     async with async_session() as session:
         count = await session.scalar(select(Categories.count).where(Categories.id == categ_id))
@@ -169,7 +176,13 @@ async def clear_cart_pr(tg_id):
         except Exception as ex:
             print(ex)
             return False
-        
+
+#Меню категорий, вывод имен тортов
+async def check_name_cake(categ):
+    async with async_session() as session:
+        cake_lst = await session.execute(select(Product.name).where(Product.categories_id == categ))
+    return cake_lst.all()
+
 #Добавление в БД сборки торта
 async def collecting_cake(data, tg_id):
     async with async_session() as session:

@@ -1,5 +1,5 @@
 from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery, ContentType
+from aiogram.types import Message, CallbackQuery, ContentType, FSInputFile
 from aiogram.filters import CommandStart, StateFilter, Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import default_state
@@ -44,17 +44,17 @@ async def process_cancel_command_state(message: Message, state: FSMContext):
 
 @router.message(F.text.endswith('Меню'))
 async def cmd_categories_product(message: Message):
-    await message.answer('Выбирете', reply_markup=await men_menu())
+    await message.answer('Выберите из предложенного', reply_markup=await men_menu())
 
 @router.message(F.text.endswith('Собрать свой торт'), StateFilter(default_state))
 async def cmd_categories_product(message: Message, state: FSMContext):
-    await message.answer('Магазин <b>"ВКУСНЫЕ ТОРТЫ"</b> предоставляет услугу по собору своего торта\n\nДля реализации задуманного укажите событие, на которое требуется прbготовить торт\n\n❌ Отмена - /cancel')
+    await message.answer('Магазин <b>"ВКУСНЫЕ ТОРТЫ"</b> предоставляет услугу по собору своего торта\n\nДля реализации задуманного укажите событие, к которому требуется подготовить торт\n\n❌ Отмена - /cancel')
     await state.set_state(Collecting_the_cake.event)
 
 @router.message(StateFilter(Collecting_the_cake.event))
 async def process_event(message: Message, state: FSMContext):
     await state.update_data(event=message.text)
-    await message.answer('Далее нам от Вас потребуется описание торта, по параметрам:\n\nВес (в кг.) -\nКоличество уровлней (1, 2 ...) -\nФормы каждого уровня (Прямоугольник, круг, сердце, <i>Ваш вариант</i>) -\nЦвет глазури -\nНачинка (бисквит и т.д.) -\nНадпись на торте (при необходимости)\nТакже можете указать любые Ваши пожелания\n\n❌ Отмена - /cancel')
+    await message.answer('Далее нам от Вас потребуется описание торта, по параметрам:\n\nВес (в кг.) -\nКоличество уровней (1, 2 ...) -\nФормы каждого уровня (Прямоугольник, круг, сердце, <i>Ваш вариант</i>) -\nЦвет глазури -\nНачинка (бисквит и т.д.) -\nНадпись на торте (при необходимости)\nТакже можете указать любые Ваши пожелания\n\n❌ Отмена - /cancel')
     await state.set_state(Collecting_the_cake.description)
 
 @router.message(StateFilter(Collecting_the_cake.description))
@@ -79,20 +79,30 @@ async def process_image(message: Message, state: FSMContext):
 async def cmd_categories_product(message: Message):
     name_categories = await output_categories()
     if name_categories:
-        await message.answer('Категории', reply_markup=await user_categories())
+        await message.answer('Категории тортов', reply_markup=await user_categories())
     else:
         await message.answer('Каталог категорий пуст', reply_markup=await user_menu_kb())
 
-@router.callback_query(F.data.startswith('user_categ '))
+
+
+@router.callback_query(F.data.startswith('men.cat'))
+@router.callback_query(F.data.startswith('user.categ'))
 async def cmd_fast_food(callback: CallbackQuery):
     await callback.message.delete()
-    item = await output_fast_food(int(callback.data.split()[-1]))
-    if item:
-        await callback.message.answer_photo(item[0][1], caption=f"🍰 <b><i>Наименование:</i></b> {item[0][0]}  \n\n🔖 <b><i>Состав/описание торта:</i></b> {item[0][2]}\n\n💵 <b><i>Прайс:</i></b> {item[0][3]} RUB", reply_markup=await add_cart(int(callback.data.split()[-1]), item[0][4]))
-        await callback.answer()
-    else:
-        await callback.message.answer('На данный момент каталог продуктов пуст, загляните к нам чуть позже')
-        await callback.answer()
+    try:
+        if callback.data.split('_')[0] == 'men.cat':
+            index = int(callback.data.split('_')[-1])
+            categ = int(callback.data.split('_')[-2])
+            item = await output_fast_food(categ)
+            await callback.message.answer_photo(item[index][1], caption=f"🍰 <b><i>Наименование:</i></b> {item[index][0]}  \n\n🔖   <b><i>Состав/описание торта:</i></b> {item[index][2]}\n\n💵 <b><i>Прайс:</i></b> {item[index][3]} RUB", reply_markup=await    add_cart(int(callback.data.split('_')[1]), item[index][4], index))
+            await callback.answer()
+        elif callback.data.split('_')[0] == 'user.categ':
+            item = await output_fast_food(int(callback.data.split('_')[-1]))
+            await callback.message.answer_photo(item[0][1], caption=f"🍰 <b><i>Наименование:</i></b> {item[0][0]}  \n\n🔖   <b><i>Состав/описание торта:</i></b> {item[0][2]}\n\n💵 <b><i>Прайс:</i></b> {item[0][3]} RUB", reply_markup=await    add_cart(int(callback.data.split('_')[-1]), item[0][4]))
+            await callback.answer()
+    except IndexError:
+        await callback.message.answer('На данный момент каталог продуктов пуст, загляните к нам чуть позже', reply_markup=await user_menu_kb())
+
 
 @router.callback_query(F.data.startswith('forward'))
 async def cmd_fast_food(callback: CallbackQuery):
@@ -163,9 +173,12 @@ async def cmd_minus(callback: CallbackQuery):
 
 @router.callback_query(F.data.startswith('count.value'))
 async def count_quanty(callback: CallbackQuery):
-    current_value = int(callback.data.split('_')[-2])
-    categ = int(callback.data.split('_')[-1])
-    await callback.answer(text=f'Товар №{current_value} из {categ}', show_alert=True)
+    index = int(callback.data.split('_')[-2]) -1
+    categ = int(callback.data.split('_')[-3])
+    print(callback.data, index, categ)
+    photo = FSInputFile("menu_tovar.jpg")
+    await callback.message.edit_media(media=InputMediaPhoto(media=photo))
+    await callback.message.edit_caption(caption='🗂|Товары', reply_markup=await menu_catalog(categ, index))
     await callback.answer()
 
 #Уменьшение количества товара, при попытке уменьшить меньше еденицы товар удаляется из корзины и переход в исходную клаву
@@ -280,6 +293,10 @@ async def clear_cart(message: Message):
         await message.answer('Корзина очищена, для пополнения переёдите в 📋 Меню)', reply_markup=await user_menu_kb())
     else:
         await message.answer('Ошибка, обратитесь к администратору [🤝 Помощь]')
+
+@router.message(F.text.endswith('Мой Профиль'))
+async def user_profile(message: Message):
+    await message.answer(f'┌📰 Ваш Профиль\n├Имя: <code>{message.from_user.first_name}</code>\n├ID: <code>{message.from_user.id}</code>\n├Телефон: <code>Отсутствует</code>\n└Количество заказов: <code>0 шт.</code>')
 
 @router.message(F.text.endswith('Помощь'))
 async def cmd_help(message: Message):
