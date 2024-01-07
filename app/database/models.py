@@ -25,6 +25,7 @@ class User(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     tg_id = mapped_column(BigInteger)
     username: Mapped[str] = mapped_column(String())
+    phone: Mapped[str] = mapped_column(String())
 
     cart_user: Mapped[List['Cart']] = relationship(back_populates='user_rel', cascade='all, delete')
     order_rel: Mapped[List['Orders']] = relationship(back_populates='user_rel', cascade='all, delete')
@@ -72,6 +73,7 @@ class CartItem(Base):
     product_id: Mapped[int] = mapped_column(ForeignKey('product.id', ondelete='CASCADE'))
     quantuty: Mapped[int] = mapped_column(default=1)
 
+
     cart_rel: Mapped['Cart'] = relationship(back_populates='items')
     product_rel: Mapped['Product'] = relationship(back_populates='cartitem_rel')
     
@@ -87,6 +89,7 @@ class Orders(Base):
     order: Mapped[dict] = mapped_column(JSON())
     total_cost: Mapped[float] = mapped_column(Float())
     status: Mapped[bool] = mapped_column(default=False)
+    readiness: Mapped[bool] = mapped_column(default=False)
 
     user_rel: Mapped['User'] = relationship(back_populates='order_rel')
     cart_rel: Mapped['Cart'] = relationship(back_populates='order_rel')
@@ -99,10 +102,11 @@ class Collecting_the_cake(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey('user.id', ondelete='CASCADE'))
     cart_id: Mapped[int] = mapped_column(ForeignKey('cart.id', ondelete='CASCADE'))
-    data_time: Mapped[str] = mapped_column()
     event: Mapped[str] = mapped_column(String())
     image: Mapped[str] = mapped_column(String())
     description: Mapped[str] = mapped_column(String())
+    data: Mapped[str] = mapped_column(String())
+    address: Mapped[str] = mapped_column(String())
 
     user_rel: Mapped['User'] = relationship(back_populates='collecting_rel')
     cart_rel: Mapped['Cart'] = relationship(back_populates='collecting_rel')

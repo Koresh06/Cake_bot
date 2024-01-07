@@ -13,10 +13,10 @@ async def chek_user(tg_id, username):
         
         return True
     
-async def add_user(tg_id, username):
+async def add_user(tg_id, username, phone):
     async with async_session() as session:
         try:
-            session.add(User(tg_id=tg_id, username=username))
+            session.add(User(tg_id=tg_id, username=username, phone=phone))
             session.add(Cart(user_id=tg_id))
             await session.commit()
             return True
@@ -100,7 +100,7 @@ async def minus_count_product(id_product):
 async def plus_count_product(id_product):
     async with async_session() as session:
         count = await session.scalar(select(CartItem.quantuty).where(CartItem.product_id == id_product))
-        if count < 10:
+        if count < 5:
             count += 1
             await session.execute(update(CartItem).where(CartItem.product_id == id_product).values(quantuty=count))
             await session.commit()
@@ -184,14 +184,93 @@ async def check_name_cake(categ):
     return cake_lst.all()
 
 #Добавление в БД сборки торта
-async def collecting_cake(data, tg_id):
+async def collecting_cake(res, tg_id):
     async with async_session() as session:
         try:
             user_d = await session.scalar(select(User).where(User.tg_id == tg_id))
             cart_d = await session.scalar(select(Cart).where(Cart.user_id == tg_id))
-            session.add(Collecting_the_cake(user_id=user_d.id, cart_id=cart_d.id, data_time=datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), event=data['event'], image=data['image'], description=data['description']))
+            session.add(Collecting_the_cake(user_id=user_d.id, cart_id=cart_d.id, event=res['event'], image=res['image'], description=res['description'], data=res['data'], address=res['address']))
             await session.commit()
             return True
         except Exception as exxit:
             print(exxit)
             return False
+
+async def show_phone(tg_id):
+    async with async_session() as session:
+        phone = await session.scalar(select(User).where(User.tg_id == tg_id))
+    return phone.phone
+
+#Сбор id_product и количества товара для оплаты
+async def payment_cart(tg_id):
+    async with async_session() as session:
+        cart_d = await session.scalar(select(Cart).where(Cart.user_id == tg_id))
+        cartitem_d = await session.execute(select(CartItem.product_id, CartItem.quantuty).where(CartItem.cart_id == cart_d.id))
+    return cartitem_d.all()
+
+#Название, описание и прайс
+async def product_name_desc_price(id_pord):
+    async with async_session() as session:
+        product_d = await session.execute(select(Product.name, Product.price).where(Product.id == id_pord))
+    return product_d.all()
+
+async def adding_order_information(tg_id, address, cake, data, price):
+    async with async_session() as session:
+        try:
+            user_d = await session.scalar(select(User).where(User.tg_id == tg_id))
+            cart_d = await session.scalar(select(Cart).where(Cart.user_id == tg_id))
+            session.add(Orders(user_id=user_d.id, cart_id=cart_d.id, data_time=data, address=address, order=cake, total_cost=float  (price)))
+            await session.commit()
+            return True
+        except Exception as exxit:
+            return False
+        finally: 
+            await session.commit()
+
+#Последний заказ пользователя
+async def id_order_user(tg_id):
+    async with async_session() as session:
+        user_d = await session.scalar(select(User).where(User.tg_id == tg_id))
+        print(user_d)
+        orders_d = await session.execute(select(Orders.id).where(Orders.user_id == user_d.id))
+    return orders_d
+
+#Получаем данные для уведомления админа об оформлении заказа
+async def retrieve_data(index):
+    async with async_session() as session:
+        order = await session.execute(select(Orders.id, Orders.data_time, Orders.address, Orders.order, Orders.total_cost, Orders.status).where(Orders.id == index))
+    return order.all()
+
+async def payment_confirmation(tg_id, id_):
+    async with async_session() as session:
+        await session.execute(update(Orders).where(Orders.id == id_).values(status=1))
+        await session.commit()
+
+#Подтверждение заказа
+async def readiness_order(index):
+    async with async_session() as session:
+        if await session.execute(update(Orders).where(Orders.id == index).values(readiness=True)):
+            await session.commit()
+            return True
+        return False
+    
+#Откланение заказа   
+async def delete_orders(id):
+    async with async_session() as session:
+        try:
+            order = await session.scalar(select(Orders).where(Orders.id == id))
+            await session.delete(order)
+            await session.commit()
+            return True
+        except Exception() as ex:
+            print(ex)
+            return False
+        
+#Получение списка пользователей
+async def users():
+    async with async_session() as session:
+        users_d = await session.execute(select(User.username, User.tg_id))
+        if users_d:
+            return users_d.all()
+        return False
+    

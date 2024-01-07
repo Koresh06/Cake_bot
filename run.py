@@ -5,6 +5,8 @@ from dotenv import load_dotenv, find_dotenv
 from aiogram import Bot, Dispatcher
 from app.handlers.user_handler import router
 from app.handlers.admin_handler import admin
+from app.handlers.order_placement import payment
+from app.handlers.cake_assembly import cake
 from app.database.models import async_main
 
 from app.middlewares.middleware import Is_Admin
@@ -16,7 +18,12 @@ async def main():
     bot: Bot = Bot(token=os.getenv('TOKEN'), parse_mode='HTML')
     dp: Dispatcher = Dispatcher()
     
-    dp.include_routers(admin, router)
+    dp.include_routers(
+        cake,
+        payment,
+        admin, 
+        router,
+    )
     
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)

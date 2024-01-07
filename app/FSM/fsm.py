@@ -14,3 +14,12 @@ class Collecting_the_cake(StatesGroup):
     event = State()
     description = State()
     image = State()
+    data = State()
+    address = State()
+
+class Telephone_user(StatesGroup):
+    phone = State()
+
+class OrderPlacement(StatesGroup):
+    data = State()
+    address = State()

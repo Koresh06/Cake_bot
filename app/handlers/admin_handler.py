@@ -93,3 +93,36 @@ async def cmd_price_product(message: Message, state: FSMContext):
     else:
         await message.answer('❌ Произошла ошибка')
         await state.clear()
+
+@admin.callback_query(F.data.startswith('readiness'))
+async def state1_cmd(callback: CallbackQuery):
+    index = int(callback.data.split('_')[-2])
+    tg_id = int(callback.data.split('_')[-1])
+    print(tg_id)
+    if await readiness_order(index):
+        await callback.bot.send_message(chat_id=tg_id, text=f'Администратор подтвердил ваш заказ № {index}')
+        await callback.message.delete()
+        await callback.answer()
+    else:
+        await callback.message.answer('Ошибка!')
+        await callback.answer()
+
+@admin.callback_query(F.data.startswith('del_'))
+async def delete_order_cmd(callback: CallbackQuery):
+        index = int(callback.data.split('_')[-2])
+        tg_id = int(callback.data.split('_')[-1])
+        await delete_orders(index)
+        await callback.message.delete()
+        await callback.answer('Заказ оклонен!')
+        await callback.message.bot.send_message(chat_id=tg_id, text=f'Ваш заказ № {index} откланен администратором')
+
+@admin.message(F.text.endswith('Пользователи'))
+async def settings_admin(message: Message):
+    if await users():
+        await message.answer(text='👑 Пользователи', reply_markup=await users_inline_buttons())
+    else:
+        await message.answer('Пользователи отсутствуют')
+
+@admin.message(F.text.endswith('Заказы'))
+async def process_admin_order(message: Message):
+    await message.answer('Заказы покупателей ->', reply_markup=await admin_order())

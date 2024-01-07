@@ -1,7 +1,6 @@
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
 from aiogram.types import KeyboardButton
 
-import config
 
 async def user_menu_kb():
     builder = ReplyKeyboardBuilder([
@@ -33,7 +32,7 @@ async def admin_menu_kb():
         [
             KeyboardButton(text='✳️ Добавить товар'),
             KeyboardButton(text='👑 Пользователи'),
-            KeyboardButton(text='⚙️ Настройки')
+            KeyboardButton(text='📦 Заказы')
         ]
     ])
     return builder.as_markup(resize_keyboard=True, one_time_keyboard=True)
@@ -62,7 +61,9 @@ async def kb_menu_cart(params):
     ])
 
     for item in params:
-        builder.row(KeyboardButton(text=f'❌ {params.index(item) + 1}. {item[0].strip()}. {item[1]} шт.'))
+        builder.row(KeyboardButton(text=f'❌ {params.index(item) + 1}. {item[0].strip()}. {item[1]} кг.'))
     builder.row(KeyboardButton(text='❎ Очистить корзину'))
 
     return builder.as_markup(resize_keyboard=True, one_time_keyboard=True)
+
+

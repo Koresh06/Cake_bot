@@ -8,8 +8,8 @@ from aiogram.types.input_media_photo import InputMediaPhoto
 from app.database.requests import *
 from app.keyboards.inline_kb import *
 from app.keyboards.reply_rb import *
-from app.FSM.fsm import Collecting_the_cake
-from app.filters.filter import CheckImageFilter
+from app.FSM.fsm import Collecting_the_cake, Telephone_user
+from app.filters.filter import CheckImageFilter, PhoneNumberVerification
 
 import config
 
@@ -17,17 +17,28 @@ import config
 router = Router()
 
 @router.message(F.text.endswith('Главное меню'))
-@router.message(CommandStart())
-async def cmd_start(message: Message):
+@router.message(CommandStart(), StateFilter(default_state))
+async def cmd_start(message: Message, state: FSMContext):
     user = await chek_user(message.from_user.id, message.from_user.first_name)
     if not user:
-        if await add_user(message.from_user.id, message.from_user.first_name):
-            await message.answer('Вас приветсвует кондитерская <b>ВКУСНЫЕ ТОРТЫ</b>\n\n', reply_markup=await user_menu_kb())
-            await message.bot.send_message(chat_id=config.ADMIN_ID, text=f'Новый пользователь - {message.from_user.first_name}', reply_markup=await new_user(message.from_user.id, message.from_user.first_name))
-        else:
-            await message.answer('Ошибка, обратитесь к администратору: https://t.me/korets_24')
+        await message.answer('Вас приветсвует кондитерская <b>ВКУСНЫЕ ТОРТЫ</b>')
+        await message.answer('Укажите номер телефона в формате: +7ХХХхххХХХХ')
+        await state.set_state(Telephone_user.phone)
     else:
         await message.answer('Доброго времени суток, мы рады вновь Вас приветствать в нашей кондитерской <b>ВКУСНЫЕ ТОРТЫ</b>\n\nДля работы с ботом выберите команду из меню ⬇️', reply_markup=await user_menu_kb())
+
+@router.message(StateFilter(Telephone_user.phone))
+async def cmd_telephone(message: Message, state: FSMContext):
+    await state.update_data(phone=message.text)
+    res = await state.get_data()
+    if await add_user(message.from_user.id, message.from_user.first_name, res['phone']):
+        await message.answer('✅ Регистрация успешно пройдена', reply_markup=await user_menu_kb())
+        await message.bot.send_message(chat_id=config.ADMIN_ID, text=f'Новый пользователь - {message.from_user.first_name}', reply_markup=await new_user(message.from_user.id, message.from_user.first_name))
+        await state.clear()
+    else:
+        await message.answer('Ошибка, обратитесь к администратору: https://t.me/korets_24')
+        await state.clear()
+
 
 @router.message(Command(commands='cancel'), StateFilter(default_state))
 async def process_cancel_command(message: Message):
@@ -94,11 +105,11 @@ async def cmd_fast_food(callback: CallbackQuery):
             index = int(callback.data.split('_')[-1])
             categ = int(callback.data.split('_')[-2])
             item = await output_fast_food(categ)
-            await callback.message.answer_photo(item[index][1], caption=f"🍰 <b><i>Наименование:</i></b> {item[index][0]}  \n\n🔖   <b><i>Состав/описание торта:</i></b> {item[index][2]}\n\n💵 <b><i>Прайс:</i></b> {item[index][3]} RUB", reply_markup=await    add_cart(int(callback.data.split('_')[1]), item[index][4], index))
+            await callback.message.answer_photo(item[index][1], caption=f"🍰 <b><i>Наименование:</i></b> {item[index][0]}  \n\n🔖   <b><i>Состав/описание торта:</i></b> {item[index][2]}\n\n💵 <b><i>Прайс:</i></b> {item[index][3]} RUB за кг.", reply_markup=await    add_cart(int(callback.data.split('_')[1]), item[index][4], index))
             await callback.answer()
         elif callback.data.split('_')[0] == 'user.categ':
             item = await output_fast_food(int(callback.data.split('_')[-1]))
-            await callback.message.answer_photo(item[0][1], caption=f"🍰 <b><i>Наименование:</i></b> {item[0][0]}  \n\n🔖   <b><i>Состав/описание торта:</i></b> {item[0][2]}\n\n💵 <b><i>Прайс:</i></b> {item[0][3]} RUB", reply_markup=await    add_cart(int(callback.data.split('_')[-1]), item[0][4]))
+            await callback.message.answer_photo(item[0][1], caption=f"🍰 <b><i>Наименование:</i></b> {item[0][0]}  \n\n🔖   <b><i>Состав/описание торта:</i></b> {item[0][2]}\n\n💵 <b><i>Прайс:</i></b> {item[0][3]} RUB за кг.", reply_markup=await    add_cart(int(callback.data.split('_')[-1]), item[0][4]))
             await callback.answer()
     except IndexError:
         await callback.message.answer('На данный момент каталог продуктов пуст, загляните к нам чуть позже', reply_markup=await user_menu_kb())
@@ -113,11 +124,11 @@ async def cmd_fast_food(callback: CallbackQuery):
         if index < len(item) - 1:
             index += 1
             await callback.message.edit_media(media=InputMediaPhoto(media=item[index][1]))
-            await callback.message.edit_caption(caption=f"🍰 <b><i>Наименование:</i></b> {item[index][0]}  \n\n🔖 <b><i>Состав/описание торта:</i></b> {item[index][2]}\n\n💵 <b><i>Прайс:</i></b> {item[index][3]} RUB", reply_markup=await add_cart(categ_id, item[index][4], index))
+            await callback.message.edit_caption(caption=f"🍰 <b><i>Наименование:</i></b> {item[index][0]}  \n\n🔖 <b><i>Состав/описание торта:</i></b> {item[index][2]}\n\n💵 <b><i>Прайс:</i></b> {item[index][3]} RUB за кг.", reply_markup=await add_cart(categ_id, item[index][4], index))
             await callback.answer()
         else:
             await callback.message.edit_media(media=InputMediaPhoto(media=item[0][1]))
-            await callback.message.edit_caption(caption=f"🍰 <b><i>Наименование:</i></b> {item[0][0]}  \n\n🔖 <b><i>Состав/описание торта:</i></b>{item[0][2]}\n\n💵 <b><i>Прайс:</i></b> {item[0][3]} RUB", reply_markup=await add_cart(categ_id, item[0][4]))
+            await callback.message.edit_caption(caption=f"🍰 <b><i>Наименование:</i></b> {item[0][0]}  \n\n🔖 <b><i>Состав/описание торта:</i></b>{item[0][2]}\n\n💵 <b><i>Прайс:</i></b> {item[0][3]} RUB за кг.", reply_markup=await add_cart(categ_id, item[0][4]))
             await callback.answer()
     else:
         await callback.message.answer('На данный момент каталог продуктов пуст, загляните к нам чуть позже')
@@ -132,44 +143,15 @@ async def cmd_fast_food(callback: CallbackQuery):
         if index > 0:
             index -= 1
             await callback.message.edit_media(media=InputMediaPhoto(media=item[index][1]))
-            await callback.message.edit_caption(caption=f"🍰 <b><i>Наименование:</i></b>{item[index][0]}  \n\n🔖 <b><i>Состав/описание торта:</i></b> {item[index][2]}\n\n💵 <b><i>Прайс:</i></b>{item[index][3]} RUB", reply_markup=await add_cart(categ_id, item[index][4], index))
+            await callback.message.edit_caption(caption=f"🍰 <b><i>Наименование:</i></b>{item[index][0]}  \n\n🔖 <b><i>Состав/описание торта:</i></b> {item[index][2]}\n\n💵 <b><i>Прайс:</i></b>{item[index][3]} RUB за кг.", reply_markup=await add_cart(categ_id, item[index][4], index))
             await callback.answer()
         else:
             await callback.message.edit_media(media=InputMediaPhoto(media=item[-1][1]))
-            await callback.message.edit_caption(caption=f"🍰 <b><i>Наименование:</i></b>{item[-1][0]}  \n\n<b><i>Состав/описание торта:</i></b> {item[-1][2]}   \n\n💵 <b><i>Прайс:</i></b>{item[-1][3]} RUB", reply_markup=await add_cart(categ_id, item[-1][4], len(item) - 1))
+            await callback.message.edit_caption(caption=f"🍰 <b><i>Наименование:</i></b>{item[-1][0]}  \n\n<b><i>Состав/описание торта:</i></b> {item[-1][2]}   \n\n💵 <b><i>Прайс:</i></b>{item[-1][3]} RUB за кг.", reply_markup=await add_cart(categ_id, item[-1][4], len(item) - 1))
             await callback.answer()
     else:
         await callback.message.answer('На данный момент каталог продуктов пуст, загляните к нам чуть позже')
         await callback.answer()
-
-#Уменьшение количества товара, при попытке уменьшить меньше еденицы товар удаляется из корзины и переход в исходную клаву
-@router.callback_query(F.data.endswith('minus'))
-async def cmd_minus(callback: CallbackQuery):
-    id_categ = int(callback.data.split('_')[0])
-    id_product = int(callback.data.split('_')[1])
-    index = int(callback.data.split('_')[2])
-    if await minus_count_product(id_product):
-        await callback.message.edit_reply_markup(reply_markup=await user_cart_product(id_categ, id_product, index))
-    else:
-        await delete_cart(callback.from_user.id, id_product)
-        await callback.message.edit_reply_markup(reply_markup=await add_cart(id_categ, id_product, index))
-
-#Добавление количества товара, максимальное количество 10 шт.
-@router.callback_query(F.data.endswith('plus'))
-async def cmd_minus(callback: CallbackQuery):
-    id_categ = int(callback.data.split('_')[0])
-    id_product = int(callback.data.split('_')[1])
-    index = int(callback.data.split('_')[2])
-    if await plus_count_product(id_product):
-        await callback.message.edit_reply_markup(reply_markup=await user_cart_product(id_categ, id_product, index))
-    else:
-        await callback.answer('Максимальное количество 10 шт.')
-
-@router.callback_query(F.data.endswith('count'))
-async def cmd_minus(callback: CallbackQuery):
-    check_count = await check_quantuty(int(callback.data.split()[0]))
-    await callback.answer(f'У вас в корзине 🛒 {check_count} шт.')
-    await callback.answer()
 
 @router.callback_query(F.data.startswith('count.value'))
 async def count_quanty(callback: CallbackQuery):
@@ -181,7 +163,7 @@ async def count_quanty(callback: CallbackQuery):
     await callback.message.edit_caption(caption='🗂|Товары', reply_markup=await menu_catalog(categ, index))
     await callback.answer()
 
-#Уменьшение количества товара, при попытке уменьшить меньше еденицы товар удаляется из корзины и переход в исходную клаву
+#Уменьшении веса торт, при попытке менее 1, переход в исходную клавиатуру
 @router.callback_query(F.data.endswith('minus'))
 async def cmd_minus(callback: CallbackQuery):
     id_categ = int(callback.data.split('_')[0])
@@ -193,7 +175,7 @@ async def cmd_minus(callback: CallbackQuery):
         await delete_cart(callback.from_user.id, id_product)
         await callback.message.edit_reply_markup(reply_markup=await add_cart(id_categ, id_product, index))
 
-#Добавление количества товара, максимальное количество 10 шт.
+#Вес торта, максимальный 5 кг.
 @router.callback_query(F.data.endswith('plus'))
 async def cmd_minus(callback: CallbackQuery):
     id_categ = int(callback.data.split('_')[0])
@@ -202,12 +184,12 @@ async def cmd_minus(callback: CallbackQuery):
     if await plus_count_product(id_product):
         await callback.message.edit_reply_markup(reply_markup=await user_cart_product(id_categ, id_product, index))
     else:
-        await callback.answer('Максимальное количество 10 шт.')
+        await callback.answer('Мы изготавливаем торты не более 5 кг.')
 
 @router.callback_query(F.data.endswith('count'))
 async def cmd_minus(callback: CallbackQuery):
     check_count = await check_quantuty(int(callback.data.split()[0]))
-    await callback.answer(f'У вас в корзине 🛒 {check_count} шт.')
+    await callback.answer(f'🎂 Торт {check_count} кг.')
     await callback.answer()
 
 
@@ -242,7 +224,7 @@ async def cmd_cart(message: Message):
             parser_product_attr = await pars_product(item[0])
             lst_menu.append(parser_product_attr)
 
-        content = '\n➖➖➖➖➖➖➖➖➖➖➖\n'.join([f"|-🍽 {lst_menu.index(item) + 1}. {item[0][0]}\n|-{item[1]} шт. х {item[0][1]} = {item [1] * item[0][1]} BYN" for item in lst_menu])
+        content = '\n➖➖➖➖➖➖➖➖➖➖➖\n'.join([f"|-🍽 {lst_menu.index(item) + 1}. {item[0][0]}\n|-{item[1]} кг. х {item[0][1]} = {item [1] * item[0][1]} RUB" for item in lst_menu])
         total_cost = sum([i[1] * i[0][1] for i in lst_menu])
         name_count_product = [(item[0][0], item[1]) for item in lst_menu]
 
@@ -255,7 +237,7 @@ async def cmd_cart(message: Message):
 @router.message(F.text.startswith('❌'))
 async def cmd_delete_product(message: Message):
     name = message.text.split('.')[1]
-    if await count_minus(name):
+    if await delete_menu_product(name):
         items = await check_user_cart(message.from_user.id)
         if items:
             lst_menu = []
@@ -263,29 +245,13 @@ async def cmd_delete_product(message: Message):
                 parser_product_attr = await pars_product(item[0])
                 lst_menu.append(parser_product_attr)
 
-            content = '\n➖➖➖➖➖➖➖➖➖➖➖\n'.join([f"|-🍽 {lst_menu.index(item) + 1}. {item[0][0]}\n|-{item[1]} шт. х {item[0][1]} = {item [1] * item[0][1]} BYN" for item in lst_menu])
+            content = '\n➖➖➖➖➖➖➖➖➖➖➖\n'.join([f"|-🍽 {lst_menu.index(item) + 1}. {item[0][0]}\n|-{item[1]} кг. х {item[0][1]} = {item[1] * item[0][1]} RUB" for item in lst_menu])
             total_cost = sum([i[1] * i[0][1] for i in lst_menu])
             name_count_product = [(item[0][0], item[1]) for item in lst_menu]
 
-            await message.answer(text=f'🛒 Ваша корзина:\n\n{content}\n\n💸 ИТОГО: {total_cost} RUB', reply_markup=await kb_menu_cart(name_count_product))
+            await message.answer(text=f'🛒 Ваша корзина:\n\n{content}\n\n💸 ИТОГО: {total_cost} RUB', reply_markup=await  kb_menu_cart(name_count_product))
         else:
-            await message.answer('Корзина пуста, перейдите в котолог [📋 Меню] и сделайте свой выбор')
-    else:
-        if await delete_menu_product(name):
-            items = await check_user_cart(message.from_user.id)
-            if items:
-                lst_menu = []
-                for item in items:
-                    parser_product_attr = await pars_product(item[0])
-                    lst_menu.append(parser_product_attr)
-
-                content = '\n➖➖➖➖➖➖➖➖➖➖➖\n'.join([f"|-🍽 {lst_menu.index(item) + 1}. {item[0][0]}\n|-{item[1]} шт. х {item[0][1]} = {item[1] * item[0][1]} BYN" for item in lst_menu])
-                total_cost = sum([i[1] * i[0][1] for i in lst_menu])
-                name_count_product = [(item[0][0], item[1]) for item in lst_menu]
-
-                await message.answer(text=f'🛒 Ваша корзина:\n\n{content}\n\n💸 ИТОГО: {total_cost} RUB', reply_markup=await  kb_menu_cart(name_count_product))
-            else:
-                await message.answer('Корзина пуста, перейдите в котолог [📋 Меню] и сделайте свой выбор', reply_markup=await user_menu_kb())
+            await message.answer('Корзина пуста, перейдите в котолог [📋 Меню] и сделайте свой выбор', reply_markup=await user_menu_kb())
 
 @router.message(F.text.endswith('Очистить корзину'))
 async def clear_cart(message: Message):
@@ -296,11 +262,16 @@ async def clear_cart(message: Message):
 
 @router.message(F.text.endswith('Мой Профиль'))
 async def user_profile(message: Message):
-    await message.answer(f'┌📰 Ваш Профиль\n├Имя: <code>{message.from_user.first_name}</code>\n├ID: <code>{message.from_user.id}</code>\n├Телефон: <code>Отсутствует</code>\n└Количество заказов: <code>0 шт.</code>')
+    phone = await show_phone(message.from_user.id)
+    await message.answer(f'┌📰 Ваш Профиль\n├Имя: <code>{message.from_user.first_name}</code>\n├ID: <code>{message.from_user.id}</code>\n├Телефон: <code>{phone}</code>\n└Количество заказов: <code>0 шт.</code>')
 
 @router.message(F.text.endswith('Помощь'))
 async def cmd_help(message: Message):
     await message.answer('🔸У вас возникли вопросы?\nМы с удовольствием ответим!\n', reply_markup=kb_help)
+
+@router.message(F.text.endswith('Другое'))
+async def cmd_help(message: Message):
+    await message.answer('Здесь будет информация о магазине/кондитерской', await user_menu_kb())
 
 @router.message()
 async def cmd_echo(message: Message):
