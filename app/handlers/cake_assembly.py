@@ -1,14 +1,14 @@
 import datetime
 import config
-from aiogram import Router, F, types
-from aiogram.types import Message, CallbackQuery, ContentType
+from aiogram import Router, F
+from aiogram.types import Message, CallbackQuery
 from aiogram.filters import StateFilter, Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import default_state
 
 from app.FSM.fsm import Collecting_the_cake
 from app.filters.filter import CheckImageFilter
-from app.database.requests import collecting_cake
+from app.requests.cake_assemly_requests import collecting_cake
 
 from app.keyboards.reply_rb import user_menu_kb
 from app.keyboards.inline_kb import new_user, generate_calendar_markup
@@ -73,12 +73,11 @@ async def process_calendar_callback(callback: CallbackQuery):
 async def process_day_callback(callback: CallbackQuery, state: FSMContext):
     day = callback.data.split('_')[0][-1] 
     day_day = callback.data.split('_')[-1] 
-    print(day_day[-1])
     if day != '🔒' and day_day != ' ':
         _, year, month, day = callback.data.split("_")
         selected_date = f"{day}.{month}.{year}"
         await state.update_data({'data':selected_date})
-        await callback.answer(f'Дата доставки установлена на {selected_date}. Спасибо!')
+        await callback.answer(f'Дата доставки установлена на {selected_date}. Спасибо!', show_alert=True)
         await callback.message.delete()
         await callback.message.answer('🚩Укажите адрес\n\nФормат: г.Москва, ул.Московская, д.1, кв.100')
         await state.set_state(Collecting_the_cake.address)

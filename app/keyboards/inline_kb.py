@@ -3,7 +3,13 @@ import datetime
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup 
 
-from app.database.requests import *
+from app.requests.keyboard_requests import (
+    check_name_cake, 
+    count_quantuty, 
+)
+from app.requests.admin_requests import output_categories, users
+from app.requests.product_cards_requests import check_quantuty
+from app.requests.order_user_requests import nomer_order, nomer_assembly_user
 
 import tracemalloc
 tracemalloc.start()
@@ -155,9 +161,56 @@ async def admin_order():
     builder = InlineKeyboardBuilder()
 
     builder.row(
-        InlineKeyboardButton(text='Заказы из каталога', callback_data=f'order_catalog'),
-        InlineKeyboardButton(text='Торты на заказ', callback_data=f'cake_collection')
+        InlineKeyboardButton(text='Заказы из каталога', callback_data='order_catalog'),
+        InlineKeyboardButton(text='Торты на заказ', callback_data='cake_collection')
     )
     builder.adjust(1)
     return builder.as_markup()
 
+async def user_orders_list(tg_id):
+    builder = InlineKeyboardBuilder()
+
+    builder.row(
+        InlineKeyboardButton(text='📊 Заказы в работе', callback_data=f'orders_progress'),
+        InlineKeyboardButton(text='👷🎂 Сборки тортов', callback_data=f'cake_assembly_{tg_id}'),
+        InlineKeyboardButton(text='📖 История', callback_data=f'user_history_{tg_id}')
+    )
+    builder.adjust(1)
+    return builder.as_markup()
+
+async def order_nomer_user(tg_id):
+    builder = InlineKeyboardBuilder()
+
+    nomer = await nomer_order(tg_id)
+
+    for item in nomer:
+        builder.add(InlineKeyboardButton(text=f'Заказ № {item[0]}', callback_data=f'nomer_zak_{item[0]}'))
+    builder.adjust(1)
+    return builder.as_markup()
+
+async def nomer_assembly(tg_id):
+    builder = InlineKeyboardBuilder()
+
+    nomer = await nomer_assembly_user(tg_id)
+
+    for item in nomer:
+        builder.add(InlineKeyboardButton(text=f'Сборка № {item[0]}', callback_data=f'nomer_assem_{item[0]}'))
+    builder.adjust(1)
+    return builder.as_markup()
+
+async def payment_cancellation(_id, payment):
+    builder = InlineKeyboardBuilder()
+
+    if not payment:
+        builder.add(InlineKeyboardButton(text='💵 Оплатить', callback_data=f'pyment_order_{_id}'))
+    builder.add(InlineKeyboardButton(text='🚫 Отменить заказ', callback_data=f'cancellation_order_{_id}'))
+    builder.add(InlineKeyboardButton(text='⬅️ Назад', callback_data=f'backward_user'))
+    builder.adjust(1)
+    return builder.as_markup()
+
+async def cancellation_sborka(_id):
+    builder = InlineKeyboardBuilder()
+    builder.add(InlineKeyboardButton(text='🚫 Отменить заказ', callback_data=f'cancellation_sborka_{_id}'))
+    builder.add(InlineKeyboardButton(text='⬅️ Назад', callback_data=f'backward_user'))
+    builder.adjust(1)
+    return builder.as_markup()

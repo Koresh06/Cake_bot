@@ -8,15 +8,16 @@ from aiogram.fsm.state import default_state
 
 from app.keyboards.inline_kb import generate_calendar_markup, payment_kb, ordering_solution
 from app.FSM.fsm import OrderPlacement
-from app.database.requests import (
-    adding_order_information,
+from app.requests.order_placement_requests import (
     payment_cart,
     product_name_desc_price,
-    retrieve_data,
+    adding_order_information,
     id_order_user,
-    clear_cart_pr,
-    payment_confirmation
+    retrieve_data,
+    payment_confirmation,
+
 )
+from app.requests.basket_user_requests import clear_cart_pr
 from app.keyboards.reply_rb import user_menu_kb
 
 payment = Router()
@@ -61,14 +62,13 @@ async def process_calendar_callback(callback: CallbackQuery):
 async def process_day_callback(callback: CallbackQuery, state: FSMContext):
     day = callback.data.split('_')[0][-1] 
     day_day = callback.data.split('_')[-1] 
-    print(day_day[-1])
     if day != '🔒' and day_day != ' ':
         _, year, month, day = callback.data.split("_")
         selected_date = f"{day}.{month}.{year}"
         await state.update_data({'data':selected_date})
-        await callback.answer(f'Дата доставки установлена на {selected_date}. Спасибо!')
+        await callback.answer(f'Дата доставки установлена на {selected_date}. Спасибо!', show_alert=True)
         await callback.message.delete()
-        await callback.message.answer('🚩Укажите адрес\n\nФормат: г.Москва, ул.Московская, д.1, кв.100')
+        await callback.message.answer('🚩Укажите адрес\n\nФормат: г.Москва, ул.Московская, д.1, кв.100', reply_markup= await user_menu_kb())
         await state.set_state(OrderPlacement.address)
     else:
         await callback.answer('Данную дату нельзя выбрать')
@@ -88,19 +88,21 @@ async def process_address(message: Message, state: FSMContext):
 
     if await adding_order_information(message.from_user.id, address_d, desc_name_killo, result['data'], total_cost):
         await message.answer('Заказ оформлен!', reply_markup=await payment_kb(message.from_user.id))
+        await clear_cart_pr(message.from_user.id)
         await state.clear()
     else:
         await message.answer('Произошла ошибка обратитесь к администратору')
         await state.clear()
 
+@payment.callback_query(F.data.startswith('pyment_order'))
 @payment.callback_query(F.data.startswith('order1'))
 @payment.callback_query(F.data.startswith('order2'))
 async def process_order1(callback: CallbackQuery):
     await callback.message.delete()
-    id_order = await id_order_user(callback.from_user.id)
-    index = id_order.all()[-1][0]
-    content = await retrieve_data(index)
     if callback.data.split("_")[0] == 'order1':
+        id_order = await id_order_user(callback.from_user.id)
+        index = id_order.all()[-1][0]
+        content = await retrieve_data(index)
         await callback.message.answer('Тестовая карта\n\nНомер карты: 1111 1111 1111 1026\nММ/ГГ: 12/22\nCVC: 000\n\nДанная карта предназначена только для тестирования платежной системы!')
         await callback.bot.send_invoice(
             chat_id=callback.from_user.id,
@@ -113,12 +115,27 @@ async def process_order1(callback: CallbackQuery):
             start_parameter='new_BOT',
         )
     elif callback.data.split("_")[0] == 'order2':
-        await clear_cart_pr(callback.from_user.id)
+        id_order = await id_order_user(callback.from_user.id)
+        index = id_order.all()[-1][0]
+        content = await retrieve_data(index)
         content = content[0]
         pos = '; '.join([f'{k}: {v} шт.' for k, v in content[3].items()])
         await callback.message.answer('✅ Товар оформлен и оплачен!\n\nОжидайте... Адинистратор с Вами свяжеться', reply_markup=await user_menu_kb())
         await callback.message.bot.send_message(chat_id=config.ADMIN_ID, text=f'Новый заказ № {index} от {callback.from_user.first_name}\n\nДата готовности: {content[1]}\n\nПозиции: {pos}\n\n💸 ОБЩАЯ СТОИМОСТЬ: {content[4]} RUB\n\n♻️ СТАТУС ОПЛАТЫ: {"✅" if content[5]else "❌"}', reply_markup=await ordering_solution(index, callback.from_user.id))
-        
+    elif callback.data.split("_")[0] == 'pyment':
+        index = int(callback.data.split("_")[-1])
+        content = await retrieve_data(index)
+        await callback.message.answer('Тестовая карта\n\nНомер карты: 1111 1111 1111 1026\nММ/ГГ: 12/22\nCVC: 000\n\nДанная карта предназначена только для тестирования платежной системы!')
+        await callback.bot.send_invoice(
+            chat_id=callback.from_user.id,
+            title='Оплата корзины',
+            description='; '.join([f'{k}: {v} шт.' for k, v in content[0][3].items()]),
+            provider_token=config.TOKEN_YOUCASSA,
+            payload=f'dop_payment_{index}',
+            currency='rub',
+            prices=[{'label': 'Руб', 'amount': f"{content[0][4] * 100:.2f}"}],
+            start_parameter='new_BOT',
+        )
     
     await callback.answer()
 
@@ -128,12 +145,19 @@ async def process_pre_checkout_query(pre_checkout: types.PreCheckoutQuery):
 
 @payment.message(F.content_type == ContentType.SUCCESSFUL_PAYMENT)
 async def process_pay(message: Message):
-    index = message.successful_payment.invoice_payload.split('_')[-1]
-    await payment_confirmation(message.from_user.id, int(index))
-    await clear_cart_pr(message.from_user.id)
-    content = await retrieve_data(index)
-    content = content[0]
-    pos = '\n'.join([f'{k}: {v} шт.' for k, v in content[3].items()])
-    await message.answer('✅ Товар оформлен и оплачен!\n\nОжидайте... Адинистратор с Вами свяжеться', reply_markup=await user_menu_kb())
-    await message.bot.send_message(chat_id=config.ADMIN_ID, text=f'Новый заказ № {index} от {message.from_user.first_name}\n\nДата готовности: {content[1]}\n\nПозиции: {pos}\n\n💸 ОБЩАЯ СТОИМОСТЬ: {content[4]} RUB\n\n♻️ СТАТУС ОПЛАТЫ: {"✅" if content[5]else "❌"}', reply_markup=await ordering_solution(index, message.from_user.id))
-    
+    if message.successful_payment.invoice_payload.split('_')[0] == 'month':
+        index = message.successful_payment.invoice_payload.split('_')[-1]
+        await payment_confirmation(int(index))
+        content = await retrieve_data(index)
+        content = content[0]
+        pos = '\n'.join([f'{k}: {v} шт.' for k, v in content[3].items()])
+        await message.answer('✅ Товар оформлен и оплачен!\n\nОжидайте... Адинистратор с Вами свяжеться', reply_markup=await    user_menu_kb())
+        await message.bot.send_message(chat_id=config.ADMIN_ID, text=f'Новый заказ № {index} от {message.from_user.first_name}  \n\nДата готовности: {content[1]}\n\nПозиции: {pos}\n\n💸 ОБЩАЯ СТОИМОСТЬ: {content[4]} RUB\n\n♻️ СТАТУС ОПЛАТЫ: {"✅" if     content[5]else "❌"}', reply_markup=await ordering_solution(index, message.from_user.id))
+    elif message.successful_payment.invoice_payload.split('_')[0] == 'dop':
+        index = message.successful_payment.invoice_payload.split('_')[-1]
+        await payment_confirmation(int(index))
+        await message.answer(f'✅ Заказ № {index} успешно оплачен!', reply_markup=await user_menu_kb())
+        await message.bot.send_message(chat_id=config.ADMIN_ID, text=f'Пользователь {message.from_user.first_name} оплатил заказ № {index}')
+
+
+        

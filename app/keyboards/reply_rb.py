@@ -10,29 +10,24 @@ async def user_menu_kb():
         ],
         [
             KeyboardButton(text='📰 Мой Профиль'),
+            KeyboardButton(text='📍 Мои заказы')
+        ],
+        [
+            KeyboardButton(text='➡️ Другое'),
             KeyboardButton(text='🆘 Помощь')
         ]
     ])
-    builder.row(KeyboardButton(text='➡️ Другое'))
     return builder.as_markup(resize_keyboard=True, one_time_keyboard=True)
 
 async def admin_menu_kb():
     builder = ReplyKeyboardBuilder([
         [
-            KeyboardButton(text='📋 Меню'),
-            KeyboardButton(text='🛒 Корзина')    
-        ],
-        [
-            KeyboardButton(text='📰 Мой Профиль'),
-            KeyboardButton(text='🆘 Помощь')
-        ],
-        [
-            KeyboardButton(text='➡️ Другое')
-        ],
-        [
             KeyboardButton(text='✳️ Добавить товар'),
             KeyboardButton(text='👑 Пользователи'),
             KeyboardButton(text='📦 Заказы')
+        ],
+        [
+            KeyboardButton(text='⬅️ Главное меню') 
         ]
     ])
     return builder.as_markup(resize_keyboard=True, one_time_keyboard=True)

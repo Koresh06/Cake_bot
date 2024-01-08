@@ -7,9 +7,11 @@ from app.handlers.user_handler import router
 from app.handlers.admin_handler import admin
 from app.handlers.order_placement import payment
 from app.handlers.cake_assembly import cake
+from app.handlers.product_cards import card
+from app.handlers.basket_user import basket
+from app.handlers.order_user import order
 from app.database.models import async_main
 
-from app.middlewares.middleware import Is_Admin
 
 load_dotenv(find_dotenv())
 
@@ -19,6 +21,9 @@ async def main():
     dp: Dispatcher = Dispatcher()
     
     dp.include_routers(
+        order,
+        basket,
+        card,
         cake,
         payment,
         admin, 

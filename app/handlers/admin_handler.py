@@ -5,10 +5,24 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import default_state
 
 from app.middlewares.middleware import Is_Admin
-from app.keyboards.inline_kb import *
-from app.keyboards.reply_rb import *
 from app.FSM.fsm import Add_categories ,Update_product
 from app.filters.filter import IsDigitFilter, CheckImageFilter
+from app.requests.admin_requests import (
+    output_categories,
+    add_categories,
+    add_product_db,
+    readiness_order,
+    delete_orders,
+    users
+)
+from app.keyboards.inline_kb import (
+    non_categor,
+    categories,
+    users_inline_buttons,
+    admin_order
+)
+from app.keyboards.reply_rb import admin_menu_kb
+
 
 admin = Router()
 
@@ -98,7 +112,6 @@ async def cmd_price_product(message: Message, state: FSMContext):
 async def state1_cmd(callback: CallbackQuery):
     index = int(callback.data.split('_')[-2])
     tg_id = int(callback.data.split('_')[-1])
-    print(tg_id)
     if await readiness_order(index):
         await callback.bot.send_message(chat_id=tg_id, text=f'Администратор подтвердил ваш заказ № {index}')
         await callback.message.delete()

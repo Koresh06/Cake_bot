@@ -1,11 +1,9 @@
-from sqlalchemy import ForeignKey, String, BigInteger, Float, Integer, DateTime, JSON
+from sqlalchemy import ForeignKey, String, BigInteger, Float, Integer, JSON
 from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase, relationship
 from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_engine
-from sqlalchemy.sql import func
 
 from typing import List
 import config
-import datetime
 
 
 engine = create_async_engine(
@@ -90,6 +88,7 @@ class Orders(Base):
     total_cost: Mapped[float] = mapped_column(Float())
     status: Mapped[bool] = mapped_column(default=False)
     readiness: Mapped[bool] = mapped_column(default=False)
+    obtaining: Mapped[bool] = mapped_column(default=False)
 
     user_rel: Mapped['User'] = relationship(back_populates='order_rel')
     cart_rel: Mapped['Cart'] = relationship(back_populates='order_rel')
@@ -107,6 +106,8 @@ class Collecting_the_cake(Base):
     description: Mapped[str] = mapped_column(String())
     data: Mapped[str] = mapped_column(String())
     address: Mapped[str] = mapped_column(String())
+    readiness: Mapped[bool] = mapped_column(default=False)
+    obtaining: Mapped[bool] = mapped_column(default=False)
 
     user_rel: Mapped['User'] = relationship(back_populates='collecting_rel')
     cart_rel: Mapped['Cart'] = relationship(back_populates='collecting_rel')
