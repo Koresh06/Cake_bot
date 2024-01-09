@@ -7,7 +7,7 @@ from app.requests.keyboard_requests import (
     check_name_cake, 
     count_quantuty, 
 )
-from app.requests.admin_requests import output_categories, users
+from app.requests.admin_requests import output_categories, users, admin_nomer_zak, get_tg_id, get_sborka_nomer_admin
 from app.requests.product_cards_requests import check_quantuty
 from app.requests.order_user_requests import nomer_order, nomer_assembly_user
 
@@ -161,8 +161,9 @@ async def admin_order():
     builder = InlineKeyboardBuilder()
 
     builder.row(
-        InlineKeyboardButton(text='Заказы из каталога', callback_data='order_catalog'),
-        InlineKeyboardButton(text='Торты на заказ', callback_data='cake_collection')
+        InlineKeyboardButton(text='📊 Заказы из каталога', callback_data='order_catalog_admin'),
+        InlineKeyboardButton(text='👷🎂 Торты на заказ', callback_data='cake_collection_admin'),
+        InlineKeyboardButton(text='📖 История заказов', callback_data='admin_history')
     )
     builder.adjust(1)
     return builder.as_markup()
@@ -172,8 +173,8 @@ async def user_orders_list(tg_id):
 
     builder.row(
         InlineKeyboardButton(text='📊 Заказы в работе', callback_data=f'orders_progress'),
-        InlineKeyboardButton(text='👷🎂 Сборки тортов', callback_data=f'cake_assembly_{tg_id}'),
-        InlineKeyboardButton(text='📖 История', callback_data=f'user_history_{tg_id}')
+        InlineKeyboardButton(text='👷🎂 Сборки тортов в работе', callback_data=f'cake_assembly_{tg_id}'),
+        InlineKeyboardButton(text='📖 История', callback_data=f'user_history')
     )
     builder.adjust(1)
     return builder.as_markup()
@@ -214,3 +215,67 @@ async def cancellation_sborka(_id):
     builder.add(InlineKeyboardButton(text='⬅️ Назад', callback_data=f'backward_user'))
     builder.adjust(1)
     return builder.as_markup()
+
+async def subcategories_stories(tg_id):
+    builder = InlineKeyboardBuilder()
+    builder.add(InlineKeyboardButton(text='📝 История заказов из каталога', callback_data='history_catalog'))
+    builder.add(InlineKeyboardButton(text='🔖 История заказов сборок', callback_data=f'history_assembly'))
+    builder.adjust(1)
+    return builder.as_markup()
+
+cancellation_history = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [InlineKeyboardButton(text='⬅️ Назад', callback_data='backward_user')]
+    ]
+)
+
+async def admin_catalog_order_nomer():
+    builder = InlineKeyboardBuilder()
+
+    nomer_orders = await admin_nomer_zak()
+    for item in nomer_orders:
+        tg_id = await get_tg_id(item[1])
+        builder.add(InlineKeyboardButton(text=f'Заказ № {item[0]}', callback_data=f'id_{item[0]}_{tg_id}'))
+    builder.adjust(1)
+    return builder.as_markup()
+
+async def user_order_availability(tg_id, index):
+    builder = InlineKeyboardBuilder()
+    builder.add(InlineKeyboardButton(text='😎 Заказчик', url=f'tg://user?id={tg_id}')),
+    builder.add(InlineKeyboardButton(text='✅ Заказ готов', callback_data=f'order_gotov_{index}_{tg_id}'))
+    builder.add(InlineKeyboardButton(text='🚫 Отменить заказ', callback_data=f'order_otmena_{index}_{tg_id}'))
+    builder.add(InlineKeyboardButton(text='⬅️ Назад', callback_data=f'admin_nazad'))
+    builder.adjust(1)
+    return builder.as_markup()
+
+async def admin_catalog_sborka_nomer():
+    builder = InlineKeyboardBuilder()
+
+    nomer_orders = await get_sborka_nomer_admin()
+    for item in nomer_orders:
+        tg_id = await get_tg_id(item[1])
+        builder.add(InlineKeyboardButton(text=f'Сборка № {item[0]}', callback_data=f'sborka/id_{item[0]}_{tg_id}'))
+    builder.adjust(1)
+    return builder.as_markup()
+
+async def user_sborka_availability(tg_id, index):
+    builder = InlineKeyboardBuilder()
+    builder.add(InlineKeyboardButton(text='😎 Заказчик', url=f'tg://user?id={tg_id}')),
+    builder.add(InlineKeyboardButton(text='✅ Заказ готов', callback_data=f'sborka_gotov_{index}_{tg_id}'))
+    builder.add(InlineKeyboardButton(text='🚫 Отменить заказ', callback_data=f'sborka_otmena_{index}_{tg_id}'))
+    builder.add(InlineKeyboardButton(text='⬅️ Назад', callback_data=f'sborka_admin_nazad'))
+    builder.adjust(1)
+    return builder.as_markup()
+
+async def admin_subcategories_stories():
+    builder = InlineKeyboardBuilder()
+    builder.add(InlineKeyboardButton(text='📝 История заказов из каталога', callback_data='admin_history_catalog'))
+    builder.add(InlineKeyboardButton(text='🔖 История заказов сборок', callback_data=f'admin_history_assembly'))
+    builder.adjust(1)
+    return builder.as_markup()
+
+admin_cancellation_history = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [InlineKeyboardButton(text='⬅️ Назад', callback_data='sborka_admin_nazad')]
+    ]
+)

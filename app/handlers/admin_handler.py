@@ -11,15 +11,27 @@ from app.requests.admin_requests import (
     output_categories,
     add_categories,
     add_product_db,
-    readiness_order,
     delete_orders,
-    users
+    users,
+    get_info_admin_order,
+    readiness_order,
+    get_inform_assembly_admin,
+    readiness_sborka,
+    delete_sborka,
+    admin_history_get_inform_order,
+    admin_history_get_inform_assembly
 )
 from app.keyboards.inline_kb import (
     non_categor,
     categories,
     users_inline_buttons,
-    admin_order
+    admin_order,
+    admin_catalog_order_nomer,
+    user_order_availability,
+    admin_catalog_sborka_nomer,
+    user_sborka_availability,
+    admin_subcategories_stories,
+    admin_cancellation_history
 )
 from app.keyboards.reply_rb import admin_menu_kb
 
@@ -109,25 +121,32 @@ async def cmd_price_product(message: Message, state: FSMContext):
         await state.clear()
 
 @admin.callback_query(F.data.startswith('readiness'))
-async def state1_cmd(callback: CallbackQuery):
+async def readiness_cmd(callback: CallbackQuery):
     index = int(callback.data.split('_')[-2])
     tg_id = int(callback.data.split('_')[-1])
-    if await readiness_order(index):
-        await callback.bot.send_message(chat_id=tg_id, text=f'Администратор подтвердил ваш заказ № {index}')
-        await callback.message.delete()
-        await callback.answer()
-    else:
-        await callback.message.answer('Ошибка!')
-        await callback.answer()
+    await callback.bot.send_message(chat_id=tg_id, text=f'Администратор подтвердил ваш заказ № {index}')
+    await callback.message.delete()
+    await callback.answer()
 
+@admin.callback_query(F.data.startswith('sborka_otmena'))
+@admin.callback_query(F.data.startswith('order_otmena'))
 @admin.callback_query(F.data.startswith('del_'))
 async def delete_order_cmd(callback: CallbackQuery):
-        index = int(callback.data.split('_')[-2])
-        tg_id = int(callback.data.split('_')[-1])
+    index = int(callback.data.split('_')[-2])
+    tg_id = int(callback.data.split('_')[-1])
+    if callback.data.split('_')[0] == 'sborka':
+        await delete_sborka(index)
+        await callback.message.delete()
+        await callback.answer('Сборка оклонена!')
+        await callback.message.bot.send_message(chat_id=tg_id, text=f'Ваша сборка № {index} откланена администратором')
+    else:
         await delete_orders(index)
         await callback.message.delete()
         await callback.answer('Заказ оклонен!')
         await callback.message.bot.send_message(chat_id=tg_id, text=f'Ваш заказ № {index} откланен администратором')
+    if callback.data.split('_')[0] == 'order' or 'sborka':
+        await callback.message.answer('Заказы покупателей ->', reply_markup=await admin_order())
+
 
 @admin.message(F.text.endswith('Пользователи'))
 async def settings_admin(message: Message):
@@ -139,3 +158,77 @@ async def settings_admin(message: Message):
 @admin.message(F.text.endswith('Заказы'))
 async def process_admin_order(message: Message):
     await message.answer('Заказы покупателей ->', reply_markup=await admin_order())
+
+@admin.callback_query(F.data == 'order_catalog_admin')
+async def process_catalog_orders_users(callback: CallbackQuery):
+    await callback.message.edit_text('Заказы находящиеся в работе', reply_markup=await admin_catalog_order_nomer())
+
+@admin.callback_query(F.data.startswith('id'))
+async def process_info_admin_cake(callback: CallbackQuery):
+    tg_id = int(callback.data.split('_')[-1])
+    index = int(callback.data.split('_')[-2])
+    content = await get_info_admin_order(index)
+    item = content[0]
+    position = '\n'.join([f'{k}: {v} шт.' for k, v in item[3].items()])
+    await callback.message.edit_text(f'Заказ № {item[0]}\n\nДата готовности: {item[1]}\n\nАдрес доставки: {item[2]}\n\nПозиции: {position}\n\nПрайс: {item[4]}\n\nСТАТУС ОПЛАТЫ: {"✅" if item[5] else "❌"}', reply_markup=await user_order_availability(tg_id, index))
+
+@admin.callback_query(F.data.startswith('order_gotov'))
+async def process_order_gotov(callback: CallbackQuery):
+    tg_id = int(callback.data.split('_')[-1])
+    index = int(callback.data.split('_')[-2])
+    if await readiness_order(index):
+        await callback.message.delete()
+        await callback.answer(f'Подтверждение заказа № {index} о готовности')
+        await callback.bot.send_message(chat_id=tg_id, text=f'Ваш заказ № {index} приготовлен!', reply_markup=await admin_order())
+
+@admin.callback_query(F.data == 'admin_nazad')
+async def process_backward_admin(callback: CallbackQuery):
+    await callback.message.edit_text('Заказы покупателей ->', reply_markup=await admin_order())
+        
+@admin.callback_query(F.data == 'cake_collection_admin')
+async def process_cake_assembly(callback: CallbackQuery):
+    await callback.message.edit_text('Сборки тортов', reply_markup=await admin_catalog_sborka_nomer())
+
+@admin.callback_query(F.data.startswith('sborka/id'))
+async def process_inform_assembly(callback: CallbackQuery):
+    await callback.message.delete()
+    tg_id = int(callback.data.split('_')[-1])
+    index = int(callback.data.split('_')[-2])
+    inform_assembly = await get_inform_assembly_admin(index)
+    sborka = inform_assembly[0]
+    await callback.message.answer_photo(photo=sborka[2], caption=f"<b><i>Событие:</i></b> {sborka[1]}\n\n<b><i>Описание:</i></b> {sborka[3]}\n\n<b><i>Дата готовности:</i></b> {sborka[4]}\n\n<b><i>Адрес:</i></b> {sborka[5]}", reply_markup=await user_sborka_availability(tg_id, index))
+
+@admin.callback_query(F.data.startswith('sborka_gotov'))
+async def process_sborka_gotov(callback: CallbackQuery):
+    tg_id = int(callback.data.split('_')[-1])
+    index = int(callback.data.split('_')[-2])
+    if await readiness_sborka(index):
+        await callback.message.delete()
+        await callback.answer(f'Подтверждение сборки № {index} о готовности')
+        await callback.bot.send_message(chat_id=tg_id, text=f'Ваш сборка № {index} приготовлена!', reply_markup=await admin_order())
+
+@admin.callback_query(F.data == 'sborka_admin_nazad')
+async def sborka_admin_nazad(callback: CallbackQuery):
+    await callback.message.delete()
+    await callback.message.answer('Заказы покупателей ->', reply_markup=await admin_order())
+
+@admin.callback_query(F.data == 'admin_history')
+async def process_admin_history(callback: CallbackQuery):
+    await callback.message.edit_text('Подкатегории:', reply_markup=await admin_subcategories_stories())
+
+@admin.callback_query(F.data == 'admin_history_catalog')
+async def process_admin_history_catalog(callback: CallbackQuery):
+    await callback.message.delete()
+    history = await admin_history_get_inform_order()
+    for item in history:
+       position = '\n'.join([f'{k}: {v} шт.' for k, v in item[3].items()])
+       await callback.message.answer(f'Заказ № {item[0]}\n\nДата готовности: {item[1]}\n\nАдрес доставки: {item[2]} #\n\nПозиции: {position}\n\nПрайс: {item[4]}\n\nСТАТУС ОПЛАТЫ: {"✅" if item[5] else "❌"}')
+    await callback.message.answer('Вернуться к Моим заказам!', reply_markup=admin_cancellation_history)
+    
+@admin.callback_query(F.data == 'admin_history_assembly')
+async def process_history_assemby(callback: CallbackQuery):
+    await callback.message.delete()
+    history = await admin_history_get_inform_assembly()
+    for sborka in history:
+        await callback.message.answer_photo(photo=sborka[2], caption=f"<b><i>Событие:</i></b> {sborka[1]}\n\n<b><i>Описание:</i></b> {sborka[3]}\n\n<b><i>Дата готовности:</i></b> {sborka[4]}\n\n<b><i>Адрес:</i></b> {sborka[5]}")
+    await callback.message.answer('Вернуться к Моим заказам!', reply_markup=admin_cancellation_history)

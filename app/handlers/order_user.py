@@ -2,16 +2,19 @@ from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 from app.requests.order_user_requests import (
     get_inform_order,
-    history_get_inform,
+    history_get_inform_order,
     get_inform_assembly,
-    delete_sborka
+    delete_sborka,
+    history_get_inform_assembly
 )
 from app.keyboards.inline_kb import (
     user_orders_list,
     payment_cancellation,
     order_nomer_user,
     nomer_assembly,
-    cancellation_sborka
+    cancellation_sborka,
+    subcategories_stories,
+    cancellation_history
 )
 
 from app.requests.admin_requests import delete_orders
@@ -73,10 +76,23 @@ async def process_delete_sborka(callback: CallbackQuery):
     else:
         await callback.message.answer('Ошибка, обратитесь к администратору')
 
-@order.callback_query(F.data.startswith('user_history'))
+@order.callback_query(F.data == 'user_history')
 async def user_history_orders(callback: CallbackQuery):
-    orders_history = await history_get_inform(callback.from_user.id)
-    for item in orders_history:
-        position = '\n'.join([f'{k}: {v} шт.' for k, v in item[3].items()])
-        await callback.message.answer(f'Заказ № {item[0]}\n\nДата готовности: {item[1]}\n\nАдрес доставки: {item[2]} \n\nПозиции: {position}\n\nПрайс: {item[4]}\n\nСТАТУС ОПЛАТЫ: {"✅" if item[5] else "❌"}')
-    await callback.answer()
+    await callback.message.edit_text('Подкатегории:', reply_markup=await subcategories_stories(callback.from_user.id))
+    
+@order.callback_query(F.data == 'history_catalog')
+async def process_history_catalog(callback: CallbackQuery):
+    await callback.message.delete()
+    history = await history_get_inform_order(callback.from_user.id)
+    for item in history:
+       position = '\n'.join([f'{k}: {v} шт.' for k, v in item[3].items()])
+       await callback.message.answer(f'Заказ № {item[0]}\n\nДата готовности: {item[1]}\n\nАдрес доставки: {item[2]} #\n\nПозиции: {position}\n\nПрайс: {item[4]}\n\nСТАТУС ОПЛАТЫ: {"✅" if item[5] else "❌"}')
+    await callback.message.answer('Вернуться к Моим заказам!', reply_markup=cancellation_history)
+    
+@order.callback_query(F.data == 'history_assembly')
+async def process_history_assemby(callback: CallbackQuery):
+    await callback.message.delete()
+    history = await history_get_inform_assembly(callback.from_user.id)
+    for sborka in history:
+        await callback.message.answer_photo(photo=sborka[2], caption=f"<b><i>Событие:</i></b> {sborka[1]}\n\n<b><i>Описание:</i></b> {sborka[3]}\n\n<b><i>Дата готовности:</i></b> {sborka[4]}\n\n<b><i>Адрес:</i></b> {sborka[5]}")
+    await callback.message.answer('Вернуться к Моим заказам!', reply_markup=cancellation_history)

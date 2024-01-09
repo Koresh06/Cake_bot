@@ -33,7 +33,6 @@ async def adding_order_information(tg_id, address, cake, data, price):
 async def id_order_user(tg_id):
     async with async_session() as session:
         user_d = await session.scalar(select(User).where(User.tg_id == tg_id))
-        print(user_d)
         orders_d = await session.execute(select(Orders.id).where(Orders.user_id == user_d.id))
     return orders_d
 
