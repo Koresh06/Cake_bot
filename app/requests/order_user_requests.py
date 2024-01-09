@@ -39,11 +39,11 @@ async def get_inform_order(index):
 async def history_get_inform_order(tg_id):
     async with async_session() as session:
         user_d = await session.scalar(select(User).where(User.tg_id == tg_id))
-        orders_d = await session.execute(select(Orders.id, Orders.data_time, Orders.address, Orders.order, Orders.total_cost, Orders.status, Orders.readiness).where(Orders.user_id == user_d.id))
+        orders_d = await session.execute(select(Orders.id, Orders.data_time, Orders.address, Orders.order, Orders.total_cost, Orders.status, Orders.readiness).where(Orders.user_id == user_d.id, Orders.readiness == True))
     return orders_d.all()
 
 async def history_get_inform_assembly(tg_id):
     async with async_session() as session:
         user_d = await session.scalar(select(User).where(User.tg_id == tg_id))
-        orders_d = await session.execute(select(Collecting_the_cake.id, Collecting_the_cake.event, Collecting_the_cake.image,   Collecting_the_cake.description, Collecting_the_cake.data, Collecting_the_cake.address).where(Collecting_the_cake.user_id == user_d.id))
+        orders_d = await session.execute(select(Collecting_the_cake.id, Collecting_the_cake.event, Collecting_the_cake.image,   Collecting_the_cake.description, Collecting_the_cake.data, Collecting_the_cake.address).where(Collecting_the_cake.user_id == user_d.id, Collecting_the_cake.readiness == True))
         return orders_d.all()

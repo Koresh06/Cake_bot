@@ -109,10 +109,10 @@ async def delete_sborka(id):
         
 async def admin_history_get_inform_order():
     async with async_session() as session:
-        orders_d = await session.execute(select(Orders.id, Orders.data_time, Orders.address, Orders.order, Orders.total_cost, Orders.status, Orders.readiness))
+        orders_d = await session.execute(select(Orders.id, Orders.data_time, Orders.address, Orders.order, Orders.total_cost, Orders.status, Orders.readiness).where(Collecting_the_cake.readiness == True))
     return orders_d.all()
 
 async def admin_history_get_inform_assembly():
     async with async_session() as session:
-        orders_d = await session.execute(select(Collecting_the_cake.id, Collecting_the_cake.event, Collecting_the_cake.image,   Collecting_the_cake.description, Collecting_the_cake.data, Collecting_the_cake.address))
+        orders_d = await session.execute(select(Collecting_the_cake.id, Collecting_the_cake.event, Collecting_the_cake.image,   Collecting_the_cake.description, Collecting_the_cake.data, Collecting_the_cake.address).where(Collecting_the_cake.readiness == True))
         return orders_d.all()
