@@ -5,3 +5,4 @@ images
 __pycache__
 database.sqlite3
 TZ.txt
+git exclude

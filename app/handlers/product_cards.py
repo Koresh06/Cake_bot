@@ -43,7 +43,7 @@ async def cmd_fast_food(callback: CallbackQuery):
 
 
 @card.callback_query(F.data.startswith('forward'))
-async def cmd_fast_food(callback: CallbackQuery):
+async def cmd_forward(callback: CallbackQuery):
     categ_id = int(callback.data.split('_')[-2])
     index = int(callback.data.split('_')[-1])
     item = await output_fast_food(categ_id)
@@ -62,7 +62,7 @@ async def cmd_fast_food(callback: CallbackQuery):
         await callback.answer()
 
 @card.callback_query(F.data.startswith('back'))
-async def cmd_fast_food(callback: CallbackQuery):
+async def cmd_back(callback: CallbackQuery):
     categ_id = int(callback.data.split('_')[-2])
     index = int(callback.data.split('_')[-1])
     item = await output_fast_food(categ_id)
@@ -103,7 +103,7 @@ async def cmd_minus(callback: CallbackQuery):
 
 #Вес торта, максимальный 5 кг.
 @card.callback_query(F.data.endswith('plus'))
-async def cmd_minus(callback: CallbackQuery):
+async def cmd_plus(callback: CallbackQuery):
     id_categ = int(callback.data.split('_')[0])
     id_product = int(callback.data.split('_')[1])
     index = int(callback.data.split('_')[2])
@@ -113,7 +113,7 @@ async def cmd_minus(callback: CallbackQuery):
         await callback.answer('Мы изготавливаем торты не более 5 кг.')
 
 @card.callback_query(F.data.endswith('count'))
-async def cmd_minus(callback: CallbackQuery):
+async def cmd_count(callback: CallbackQuery):
     check_count = await check_quantuty(int(callback.data.split()[0]))
     await callback.answer(f'🎂 Торт {check_count} кг.')
     await callback.answer()
