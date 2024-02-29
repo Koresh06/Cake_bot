@@ -1,0 +1,8 @@
+[bot]
+
+token = "6702464771:AAHmdAzRR-mxPVXflQCiNXk5t6Ci45bPozA"
+
+[database]
+
+path = 'database.sqlite3'
+echo = True

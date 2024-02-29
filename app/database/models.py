@@ -1,17 +1,16 @@
+from typing import List
+
 from sqlalchemy import ForeignKey, String, BigInteger, Float, Integer, JSON
 from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase, relationship
-from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker
 
-from typing import List
-import config
+from app.database.database import create_engine
+from app.config_loader import create_config_from_toml
 
 
-engine = create_async_engine(
-    url=config.SQLALCHEMY_URL,
-    echo=config.SQLALCHEMY_ECHO
-)
+config = create_config_from_toml('/config/config.template.toml')
 
-async_session = async_sessionmaker(engine)
+async_session = async_sessionmaker(create_engine(config))
 
 
 class Base(AsyncAttrs, DeclarativeBase):
@@ -113,5 +112,5 @@ class Collecting_the_cake(Base):
     cart_rel: Mapped['Cart'] = relationship(back_populates='collecting_rel')
 
 async def async_main():
-    async with engine.begin() as conn:
+    async with create_engine(config).begin() as conn:
         await conn.run_sync(Base.metadata.create_all)

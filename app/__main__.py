@@ -1,8 +1,7 @@
 import asyncio
 import logging
-import os
 
-from dotenv import load_dotenv, find_dotenv
+from app.config_loader import create_config_from_toml
 from aiogram import Bot, Dispatcher
 from app.handlers.user_handler import router
 from app.handlers.admin_handler import admin
@@ -16,7 +15,6 @@ from app.database.models import async_main
 
 logger = logging.getLogger(__name__)
 
-load_dotenv(find_dotenv())
 
 async def main():
     logging.basicConfig(
@@ -27,7 +25,7 @@ async def main():
     logger.info('Staring bot')
     
     await async_main() #Запуск БД
-    bot: Bot = Bot(token=os.getenv('TOKEN'), parse_mode='HTML')
+    bot: Bot = Bot(token=create_config_from_toml('/config/config.template.toml').bot.token, parse_mode='HTML')
     dp: Dispatcher = Dispatcher()
     
     dp.include_routers(
