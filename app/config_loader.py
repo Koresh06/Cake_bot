@@ -1,20 +1,19 @@
-from ast import Dict
 import toml
 from app.config import Config, BotConfig, DbConfig
 
 
-def load_toml_file(file_path: str) -> Dict:
+def load_toml_file(file_path: str) -> dict:
     """Load TOML file and return as dictionary."""
     with open(file_path, "r") as file:
         config_dict = toml.load(file)
     return config_dict
 
-def create_bot_config(config_dict: Dict) -> BotConfig:
+def create_bot_config(config_dict: dict) -> BotConfig:
     """Create BotConfig object from dictionary."""
     bot_config = config_dict.get("bot", {})
     return BotConfig(token=bot_config.get("token", ""))
 
-def create_db_config(config_dict: Dict) -> DbConfig:
+def create_db_config(config_dict: dict) -> DbConfig:
     """Create DbConfig object from dictionary."""
     db_config = config_dict.get("db", {})
     return DbConfig(

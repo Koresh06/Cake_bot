@@ -8,11 +8,6 @@ from app.database.database import create_engine
 from app.config_loader import create_config_from_toml
 
 
-config = create_config_from_toml('/config/config.template.toml')
-
-async_session = async_sessionmaker(create_engine(config))
-
-
 class Base(AsyncAttrs, DeclarativeBase):
     pass
 
@@ -112,5 +107,6 @@ class Collecting_the_cake(Base):
     cart_rel: Mapped['Cart'] = relationship(back_populates='collecting_rel')
 
 async def async_main():
+    config = create_config_from_toml('/config/config.template.toml')
     async with create_engine(config).begin() as conn:
         await conn.run_sync(Base.metadata.create_all)

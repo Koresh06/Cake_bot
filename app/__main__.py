@@ -1,6 +1,9 @@
 import asyncio
 import logging
 
+from sqlalchemy import create_engine
+from sqlalchemy.ext.asyncio import async_sessionmaker
+
 from app.config_loader import create_config_from_toml
 from aiogram import Bot, Dispatcher
 from app.handlers.user_handler import router
@@ -25,6 +28,9 @@ async def main():
     logger.info('Staring bot')
     
     await async_main() #Запуск БД
+    config = create_config_from_toml('/config/config.template.toml') #Создание конфига
+    async_session = async_sessionmaker(create_engine(config)) #Создание сессии
+
     bot: Bot = Bot(token=create_config_from_toml('/config/config.template.toml').bot.token, parse_mode='HTML')
     dp: Dispatcher = Dispatcher()
     
