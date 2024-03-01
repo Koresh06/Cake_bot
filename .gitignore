@@ -2,5 +2,4 @@ images
 .venv
 __pycache__
 database.sqlite3
-config/
-*.toml
+config.template.toml
