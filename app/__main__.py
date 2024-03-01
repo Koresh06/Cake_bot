@@ -14,7 +14,7 @@ from app.handlers.product_cards import card
 from app.handlers.basket_user import basket
 from app.handlers.order_user import order
 from app.database.models import async_main
-from cakes_to_order.app.config import BotConfig
+from cakes_to_order.app.config import BotConfig, DbConfig
 
 
 logger = logging.getLogger(__name__)
@@ -29,10 +29,10 @@ async def main():
     logger.info('Staring bot')
     
     await async_main() #Запуск БД
-    config = load_config_from_toml('/config/config.template.toml', BotConfig) #Создание конфига
-    async_session = async_sessionmaker(create_engine(config)) #Создание сессии
+    config_db = load_config_from_toml('/config/config.template.toml', DbConfig) #Создание конфига
+    async_session = async_sessionmaker(create_engine(config_db)) #Создание сессии
 
-    bot: Bot = Bot(token=load_config_from_toml('/config/config.template.toml').bot.token, parse_mode='HTML')
+    bot: Bot = Bot(token=load_config_from_toml('/config/config.template.toml', BotConfig), parse_mode='HTML')
     dp: Dispatcher = Dispatcher()
     
     dp.include_routers(
