@@ -1,29 +1,21 @@
 import toml
-from app.config import Config, BotConfig, DbConfig
+from typing import Union
+
+from cakes_to_order.app.config import DbConfig, BotConfig
 
 
-def load_toml_file(file_path: str) -> dict:
-    """Load TOML file and return as dictionary."""
+def load_config_from_toml(file_path: str, config_type: Union[BotConfig, DbConfig]) -> Union[BotConfig, DbConfig]:
+    """Load TOML file and create config object."""
     with open(file_path, "r") as file:
         config_dict = toml.load(file)
-    return config_dict
-
-def create_bot_config(config_dict: dict) -> BotConfig:
-    """Create BotConfig object from dictionary."""
-    bot_config = config_dict.get("bot", {})
-    return BotConfig(token=bot_config.get("token", ""))
-
-def create_db_config(config_dict: dict) -> DbConfig:
-    """Create DbConfig object from dictionary."""
-    db_config = config_dict.get("db", {})
-    return DbConfig(
-        path=db_config.get("path", ""),
-        echo=db_config.get("echo", False)
-    )
-
-def create_config_from_toml(file_path: str) -> Config:
-    """Create Config object from TOML file."""
-    config_dict = load_toml_file(file_path)
-    bot_config = create_bot_config(config_dict)
-    db_config = create_db_config(config_dict)
-    return Config(bot=bot_config, db=db_config)
+    
+    if config_type == BotConfig:
+        return BotConfig(token=config_dict.get("bot", {}).get("token", ""))
+    elif config_type == DbConfig:
+        db_config = config_dict.get("db", {})
+        return DbConfig(
+            path=db_config.get("path", ""),
+            echo=db_config.get("echo", False)
+        )
+    else:
+        raise ValueError("Invalid config type")

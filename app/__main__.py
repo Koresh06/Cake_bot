@@ -4,7 +4,7 @@ import logging
 from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from app.config_loader import create_config_from_toml
+from app.config_loader import load_config_from_toml
 from aiogram import Bot, Dispatcher
 from app.handlers.user_handler import router
 from app.handlers.admin_handler import admin
@@ -14,6 +14,7 @@ from app.handlers.product_cards import card
 from app.handlers.basket_user import basket
 from app.handlers.order_user import order
 from app.database.models import async_main
+from cakes_to_order.app.config import BotConfig
 
 
 logger = logging.getLogger(__name__)
@@ -28,10 +29,10 @@ async def main():
     logger.info('Staring bot')
     
     await async_main() #Запуск БД
-    config = create_config_from_toml('/config/config.template.toml') #Создание конфига
+    config = load_config_from_toml('/config/config.template.toml', BotConfig) #Создание конфига
     async_session = async_sessionmaker(create_engine(config)) #Создание сессии
 
-    bot: Bot = Bot(token=create_config_from_toml('/config/config.template.toml').bot.token, parse_mode='HTML')
+    bot: Bot = Bot(token=load_config_from_toml('/config/config.template.toml').bot.token, parse_mode='HTML')
     dp: Dispatcher = Dispatcher()
     
     dp.include_routers(
