@@ -21,8 +21,8 @@ async def main():
     
     config = load_config()
     engine = create_engine_db(config.db)
-    create_all_table(engine)
     pool = create_sessionmaker(engine)
+    create_all_table(engine)
     bot = create_bot(config) 
 
     

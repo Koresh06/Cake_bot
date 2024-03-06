@@ -1,8 +1,7 @@
 [bot]
-
 token = "6702464771:AAHmdAzRR-mxPVXflQCiNXk5t6Ci45bPozA"
 
-[db]
-
-path = 'database.sqlite3'
+[database]
+type = "sqlite"
+path = "data.db"
 echo = true
