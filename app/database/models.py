@@ -1,15 +1,10 @@
 from typing import List
 
 from sqlalchemy import ForeignKey, String, BigInteger, Float, Integer, JSON
-from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase, relationship
-from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.database.database import create_engine
-from app.config_loader import create_config_from_toml
+from app.database.base import Base
 
-
-class Base(AsyncAttrs, DeclarativeBase):
-    pass
 
 class User(Base):
     __tablename__ = 'user'
@@ -106,7 +101,3 @@ class Collecting_the_cake(Base):
     user_rel: Mapped['User'] = relationship(back_populates='collecting_rel')
     cart_rel: Mapped['Cart'] = relationship(back_populates='collecting_rel')
 
-async def async_main():
-    config = create_config_from_toml('/config/config.template.toml')
-    async with create_engine(config).begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)

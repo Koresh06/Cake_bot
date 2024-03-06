@@ -10,12 +10,12 @@ def make_url(path: str) -> str:
 
 def create_pool(db_config: DbConfig) -> async_sessionmaker[AsyncSession]:
     engine = create_engine(db_config)
-    return create_session_maker(engine)
+    return create_sessionmaker(engine)
 
-def create_engine(db_config: DbConfig) -> AsyncEngine:
+def create_engine_db(db_config: DbConfig) -> AsyncEngine:
     return create_async_engine(url=make_url(db_config.path), echo=db_config.echo)
 
-def create_session_maker(engine) -> async_sessionmaker[AsyncSession]:
+def create_sessionmaker(engine) -> async_sessionmaker[AsyncSession]:
     pool: async_sessionmaker[AsyncSession] = async_sessionmaker(
         bind=engine, expire_on_commit=False, autoflush=False
     )

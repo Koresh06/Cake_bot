@@ -1,20 +1,11 @@
 import asyncio
 import logging
 
-from sqlalchemy import create_engine
-from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from app.config_loader import load_config_from_toml
-from aiogram import Bot, Dispatcher
-from app.handlers.user_handler import router
-from app.handlers.admin_handler import admin
-from app.handlers.order_placement import payment
-from app.handlers.cake_assembly import cake
-from app.handlers.product_cards import card
-from app.handlers.basket_user import basket
-from app.handlers.order_user import order
-from app.database.models import async_main
-from cakes_to_order.app.config import BotConfig, DbConfig
+from app.config_loader import load_config
+from app.database.database import create_engine_db, create_sessionmaker
+from app.database.factory_table import create_all_table
+from app.main_factory import create_bot, create_dispather
 
 
 logger = logging.getLogger(__name__)
@@ -28,22 +19,18 @@ async def main():
     )
     logger.info('Staring bot')
     
-    await async_main() #Запуск БД
-    config_db = load_config_from_toml('/config/config.template.toml', DbConfig) #Создание конфига
-    async_session = async_sessionmaker(create_engine(config_db)) #Создание сессии
+    config = load_config()
+    engine = create_engine_db(config.db)
+    create_all_table(engine)
+    pool = create_sessionmaker(engine)
+    bot = create_bot(config) 
 
-    bot: Bot = Bot(token=load_config_from_toml('/config/config.template.toml', BotConfig), parse_mode='HTML')
-    dp: Dispatcher = Dispatcher()
     
-    dp.include_routers(
-        order,
-        basket,
-        card,
-        cake,
-        payment,
-        admin, 
-        router,
+    dp = create_dispather(
+        config=config,
+        pool=pool
     )
+
     
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
