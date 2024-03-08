@@ -25,7 +25,7 @@ class DbConfig:
                 f"@{self.host}:{self.port}/{self.name}"
             )
         elif self.type == "sqlite":
-            url = f"{self.type}:///{self.path}"
+            url = f"{self.type}+aiosqlite:///{self.path}"
         else:
             raise ValueError("DB_TYPE not mysql, sqlite or postgres")
         return url

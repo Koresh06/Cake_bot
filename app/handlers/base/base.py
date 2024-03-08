@@ -11,7 +11,7 @@ from app.utils.router import StartDialog
 def setup(dp: Dispatcher):
     main_menu = StartDialog(
         dp=dp,
-        state=states.MainMenuSG.main,
+        state=states.MainMenuSG.main1,
         show_mode=ShowMode.SEND,
     )
     main_menu.message(Command("start"))

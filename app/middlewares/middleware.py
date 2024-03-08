@@ -3,7 +3,7 @@ from typing import Callable, Dict, Any, Awaitable
 
 from aiogram import BaseMiddleware
 from aiogram.types import Message, TelegramObject
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 import config
 
@@ -22,7 +22,7 @@ class Is_Admin(BaseMiddleware):
 
 
 class InitMiddleware(BaseMiddleware):
-    def __init__(self,pool: sessionmaker[Session]) -> None:
+    def __init__(self,pool: async_sessionmaker[AsyncSession]) -> None:
         self.pool = pool
 
     async def __call__(
@@ -31,7 +31,7 @@ class InitMiddleware(BaseMiddleware):
         event: TelegramObject,
         data: Dict[str, Any]
     ) -> Any:
-        with self.pool() as session:
+        async with self.pool() as session:
             data["session"] = session
             result = await handler(event, data)
         return result

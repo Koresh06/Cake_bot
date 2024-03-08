@@ -4,5 +4,7 @@ from sqlalchemy import Engine
 
 from app.database.base import Base
 
-def create_all_table(engine: Engine):
-    Base.metadata.create_all(engine)
+
+async def create_all_tables(engine: Engine):
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)

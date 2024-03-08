@@ -4,7 +4,7 @@ import logging
 
 from app.config_loader import load_config
 from app.database.database import create_engine_db, create_sessionmaker
-from app.database.factory_table import create_all_table
+from app.database.factory_table import create_all_tables
 from app.main_factory import create_bot, create_dispather
 
 
@@ -22,12 +22,11 @@ async def main():
     config = load_config()
     engine = create_engine_db(config.db)
     pool = create_sessionmaker(engine)
-    create_all_table(engine)
+    await create_all_tables(engine)
     bot = create_bot(config) 
 
     
     dp = create_dispather(
-        config=config,
         pool=pool
     )
 
