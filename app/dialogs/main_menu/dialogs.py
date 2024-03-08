@@ -1,9 +1,7 @@
 from aiogram.types import CallbackQuery
 from aiogram_dialog import Dialog, DialogManager, Window
-from aiogram_dialog.widgets.text import (
-    Const, Format
-)
-from aiogram_dialog.widgets.kbd import Button, Back
+from aiogram_dialog.widgets.kbd import Back, Button
+from aiogram_dialog.widgets.text import Const, Format
 
 from app.FSM import states
 
@@ -24,10 +22,7 @@ async def dialog_get_data(**kwargs):
     }
 
 async def button1_clicked(callback: CallbackQuery, button: Button, manager: DialogManager):
-    dialog_data = manager.dialog_data
-    event = manager.event
-    middleware_data = manager.middleware_data
-    start_data = manager.start_data
+    ...
 
 main_menu = Dialog(
     Window(

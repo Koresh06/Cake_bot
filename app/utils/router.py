@@ -1,7 +1,7 @@
 from aiogram import Dispatcher
 from aiogram.filters import Filter
 from aiogram.fsm.state import State
-from aiogram_dialog import StartMode, ShowMode, DialogManager
+from aiogram_dialog import DialogManager, ShowMode, StartMode
 
 
 class StartDialog:

@@ -1,6 +1,7 @@
+import re
+
 from aiogram.filters import BaseFilter
 from aiogram.types import Message
-import re
 
 
 class CheckImageFilter(BaseFilter): 

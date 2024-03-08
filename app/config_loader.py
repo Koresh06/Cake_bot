@@ -1,7 +1,6 @@
 import toml
-from typing import Union
 
-from app.config import DbConfig, BotConfig, Config
+from app.config import BotConfig, Config, DbConfig
 
 
 def load_config() -> Config:

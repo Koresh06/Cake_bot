@@ -1,9 +1,7 @@
 from aiogram import Dispatcher
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import Session, sessionmaker
 
 from app.middlewares.middleware import InitMiddleware
-
-
 
 
 def setup_middlewares(

@@ -1,5 +1,3 @@
-from sqlalchemy.ext.asyncio import AsyncAttrs
-from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy import Engine
 
 from app.database.base import Base

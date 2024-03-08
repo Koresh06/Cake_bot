@@ -1,5 +1,5 @@
-from datetime import datetime
-from typing import Callable, Dict, Any, Awaitable
+from collections.abc import Awaitable
+from typing import Any, Callable
 
 from aiogram import BaseMiddleware
 from aiogram.types import Message, TelegramObject
@@ -7,13 +7,14 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 import config
 
+
 # Это будет inner-мидлварь на сообщения
 class Is_Admin(BaseMiddleware):
     async def __call__(
         self,
-        handler: Callable[[Message, Dict[str, Any]], Awaitable[Any]],
+        handler: Callable[[Message, dict[str, Any]], Awaitable[Any]],
         event: Message,
-        data: Dict[str, Any]
+        data: dict[str, Any]
     ) -> Any:
         if event.from_user.id == config.ADMIN_ID:
             return await handler(event, data)
@@ -29,7 +30,7 @@ class InitMiddleware(BaseMiddleware):
         self,
         handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[Any]],
         event: TelegramObject,
-        data: Dict[str, Any]
+        data: dict[str, Any]
     ) -> Any:
         async with self.pool() as session:
             data["session"] = session

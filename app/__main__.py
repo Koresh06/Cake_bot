@@ -1,12 +1,10 @@
 import asyncio
 import logging
 
-
 from app.config_loader import load_config
 from app.database.database import create_engine_db, create_sessionmaker
 from app.database.factory_table import create_all_tables
 from app.main_factory import create_bot, create_dispather
-
 
 logger = logging.getLogger(__name__)
 

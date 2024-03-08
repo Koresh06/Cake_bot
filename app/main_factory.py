@@ -1,12 +1,13 @@
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import Session, sessionmaker
 
 from app.config import Config
+from app.dialogs import setup_dialogs
 from app.handlers.base import setup_handlers
 from app.middlewares import setup_middlewares
-from app.dialogs import setup_dialogs
+
 
 def create_bot(config: Config) -> Bot:
     return Bot(
